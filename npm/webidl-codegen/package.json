@@ -1,0 +1,25 @@
+{
+  "name": "@midstall/webidl-codegen",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "bin": {
+    "webidl-codegen": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "node --test --experimental-strip-types src/ir.test.ts src/emit-ts.test.ts src/cli.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0"
+  }
+}

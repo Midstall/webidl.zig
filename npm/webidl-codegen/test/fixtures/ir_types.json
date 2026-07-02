@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "interfaces": [
+    {
+      "name": "TypeCoverage",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [
+        {
+          "name": "buf",
+          "type": {"kind":"buffer","buffer":"array_buffer"},
+          "readonly": false,
+          "static": false
+        },
+        {
+          "name": "frozen",
+          "type": {"kind":"frozen_array","inner":{"kind":"long"}},
+          "readonly": false,
+          "static": false
+        },
+        {
+          "name": "observable",
+          "type": {"kind":"observable_array","inner":{"kind":"long"}},
+          "readonly": false,
+          "static": false
+        },
+        {
+          "name": "handler",
+          "type": {"kind":"named","name":"OnProgress"},
+          "readonly": false,
+          "static": false
+        }
+      ],
+      "operations": [
+        {
+          "name": "getMapping",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"record","key":{"kind":"dom_string"},"value":{"kind":"long"}},
+          "args": []
+        },
+        {
+          "name": "takeUnion",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"undefined"},
+          "args": [
+            {
+              "name": "value",
+              "type": {"kind":"union","members":[{"kind":"long"},{"kind":"dom_string"}]},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        }
+      ],
+      "constructors": []
+    }
+  ],
+  "dictionaries": [
+    {
+      "name": "LiteralDefaults",
+      "inherits": null,
+      "members": [
+        {
+          "name": "flagTrue",
+          "type": {"kind":"boolean"},
+          "required": false,
+          "default": {"kind":"boolean","value":true}
+        },
+        {
+          "name": "flagFalse",
+          "type": {"kind":"boolean"},
+          "required": false,
+          "default": {"kind":"boolean","value":false}
+        },
+        {
+          "name": "rate",
+          "type": {"kind":"double"},
+          "required": false,
+          "default": {"kind":"decimal","value":1.5}
+        },
+        {
+          "name": "label",
+          "type": {"kind":"dom_string"},
+          "required": false,
+          "default": {"kind":"string","value":"hello"}
+        },
+        {
+          "name": "posInf",
+          "type": {"kind":"double"},
+          "required": false,
+          "default": {"kind":"positive_infinity"}
+        },
+        {
+          "name": "negInf",
+          "type": {"kind":"double"},
+          "required": false,
+          "default": {"kind":"negative_infinity"}
+        },
+        {
+          "name": "notANumber",
+          "type": {"kind":"double"},
+          "required": false,
+          "default": {"kind":"nan"}
+        }
+      ]
+    }
+  ],
+  "enums": [],
+  "callbacks": [
+    {
+      "name": "OnProgress",
+      "returnType": {"kind":"undefined"},
+      "args": [
+        {
+          "name": "message",
+          "type": {"kind":"dom_string"},
+          "optional": false,
+          "variadic": false,
+          "default": null
+        },
+        {
+          "name": "progress",
+          "type": {"kind":"double"},
+          "optional": false,
+          "variadic": false,
+          "default": null
+        }
+      ]
+    }
+  ],
+  "namespaces": []
+}

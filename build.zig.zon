@@ -1,11 +1,7 @@
 .{
-  .name = "webidl.zig",
-  .version = "0.1.0",
-  .paths = .{"."},
-  .dependencies = .{
-    .@"parser-toolkit" = .{
-      .url = "https://github.com/MasterQ32/parser-toolkit/archive/358a028beb32ebb193dadb6f7a954965745892a7.tar.gz",
-      .hash = "122096e52791fd03257d5c6af9421dfa0c8ba763c01ef5a9d4c022903a741cbad13a",
-    },
-  },
+    .name = .webidl_zig,
+    .version = "0.1.0",
+    .fingerprint = 0xf4d9deb5732b216,
+    .dependencies = .{},
+    .paths = .{"."},
 }
