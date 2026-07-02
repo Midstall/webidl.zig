@@ -20,6 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.16.0
       - name: Build
         run: |
           zig build -Dtarget=${{ matrix.target }} -Doptimize=${{ matrix.optimize }}
@@ -35,6 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.16.0
       - name: Build
         run: |
           zig build -Dtarget=${{ matrix.target }} -Doptimize=${{ matrix.optimize }}
@@ -50,9 +54,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: goto-bus-stop/setup-zig@v2
+        with:
+          version: 0.16.0
       - name: Build
         run: |
           zig build -Dtarget=${{ matrix.target }} -Doptimize=${{ matrix.optimize }}
       - name: Test
         run: |
           zig build test
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: cd npm && npm install
+      - name: Build webidl-runtime
+        run: cd npm && npm -w @midstall/webidl-runtime run build
+      - name: Build webidl-codegen
+        run: cd npm && npm -w @midstall/webidl-codegen run build
+      - name: Test webidl-runtime
+        run: cd npm && npm -w @midstall/webidl-runtime test
+      - name: Test webidl-codegen
+        run: cd npm && npm -w @midstall/webidl-codegen test

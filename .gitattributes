@@ -1,0 +1,5 @@
+# Golden tests compare emitter output (LF) against checked-in fixtures byte for
+# byte, so every text file must stay LF even when checked out on Windows.
+* text=auto eol=lf
+
+*.wasm binary

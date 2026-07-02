@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "interfaces": [
+    {
+      "name": "WithBigint",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [
+        {
+          "name": "bigNum",
+          "type": {"kind":"bigint"},
+          "readonly": false,
+          "static": false
+        }
+      ],
+      "operations": [],
+      "constructors": []
+    },
+    {
+      "name": "WithConstructor",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [],
+      "operations": [
+        {
+          "name": "doThing",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"undefined"},
+          "args": []
+        }
+      ],
+      "constructors": [
+        {
+          "args": [
+            {
+              "name": "x",
+              "type": {"kind":"long"},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            },
+            {
+              "name": "y",
+              "type": {"kind":"long"},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WithGetter",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [],
+      "operations": [
+        {
+          "name": null,
+          "special": "getter",
+          "static": false,
+          "returnType": {"kind":"dom_string"},
+          "args": [
+            {
+              "name": "index",
+              "type": {"kind":"unsigned_long"},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        }
+      ],
+      "constructors": []
+    },
+    {
+      "name": "WithNullable",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [],
+      "operations": [
+        {
+          "name": "takeNullable",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"undefined"},
+          "args": [
+            {
+              "name": "x",
+              "type": {"kind":"nullable","inner":{"kind":"long"}},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        }
+      ],
+      "constructors": []
+    },
+    {
+      "name": "WithPromise",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [],
+      "operations": [
+        {
+          "name": "doAsync",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"promise","inner":{"kind":"long"}},
+          "args": []
+        }
+      ],
+      "constructors": []
+    },
+    {
+      "name": "WithStatic",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [
+        {
+          "name": "staticVal",
+          "type": {"kind":"long"},
+          "readonly": true,
+          "static": true
+        }
+      ],
+      "operations": [
+        {
+          "name": "staticOp",
+          "special": null,
+          "static": true,
+          "returnType": {"kind":"undefined"},
+          "args": [
+            {
+              "name": "x",
+              "type": {"kind":"long"},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        }
+      ],
+      "constructors": []
+    },
+    {
+      "name": "WithType",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [
+        {
+          "name": "type",
+          "type": {"kind":"dom_string"},
+          "readonly": false,
+          "static": false
+        }
+      ],
+      "operations": [],
+      "constructors": []
+    },
+    {
+      "name": "WithVariadic",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [],
+      "operations": [
+        {
+          "name": "takeVariadic",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"undefined"},
+          "args": [
+            {
+              "name": "xs",
+              "type": {"kind":"long"},
+              "optional": false,
+              "variadic": true,
+              "default": null
+            }
+          ]
+        }
+      ],
+      "constructors": []
+    }
+  ],
+  "dictionaries": [],
+  "enums": [
+    {
+      "name": "WithEmpty",
+      "values": [
+        "",
+        "value"
+      ]
+    }
+  ],
+  "callbacks": [],
+  "namespaces": [
+    {
+      "name": "MathNS",
+      "constants": [],
+      "attributes": [],
+      "operations": [
+        {
+          "name": "sqrt",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"double"},
+          "args": [
+            {
+              "name": "x",
+              "type": {"kind":"double"},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+export const ABI_VERSION = 1;
+
+export const ENV_IMPORTS = [
+  '__webidl_call_method',
+  '__webidl_get_attr',
+  '__webidl_set_attr',
+  '__webidl_bool_to_handle',
+  '__webidl_handle_to_bool',
+  '__webidl_i32_to_handle',
+  '__webidl_handle_to_i32',
+  '__webidl_u32_to_handle',
+  '__webidl_handle_to_u32',
+  '__webidl_i64_to_handle',
+  '__webidl_handle_to_i64',
+  '__webidl_u64_to_handle',
+  '__webidl_handle_to_u64',
+  '__webidl_f64_to_handle',
+  '__webidl_handle_to_f64',
+  '__webidl_str_to_handle',
+  '__webidl_write_str',
+  '__webidl_call_static',
+  '__webidl_get_static_attr',
+  '__webidl_set_static_attr',
+  '__webidl_construct',
+  '__webidl_retain',
+  '__webidl_release',
+] as const;

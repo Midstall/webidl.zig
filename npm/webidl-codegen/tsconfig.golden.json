@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "lib": ["ES2022", "DOM"],
+    "noEmit": true,
+    "strict": true,
+    "paths": {
+      "@midstall/webidl-runtime": ["../webidl-runtime/src/index.ts"]
+    }
+  },
+  "include": ["test/golden/**/*.ts"]
+}

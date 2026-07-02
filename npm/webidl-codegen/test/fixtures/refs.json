@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "interfaces": [
+    {
+      "name": "Ignored",
+      "inherits": null,
+      "mixin": true,
+      "constants": [],
+      "attributes": [
+        {
+          "name": "x",
+          "type": {"kind":"long"},
+          "readonly": false,
+          "static": false
+        }
+      ],
+      "operations": [],
+      "constructors": []
+    },
+    {
+      "name": "Node",
+      "inherits": null,
+      "mixin": false,
+      "constants": [],
+      "attributes": [
+        {
+          "name": "parent",
+          "type": {"kind":"nullable","inner":{"kind":"named","name":"Node"}},
+          "readonly": false,
+          "static": false
+        }
+      ],
+      "operations": [
+        {
+          "name": "appendChild",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"named","name":"Node"},
+          "args": [
+            {
+              "name": "child",
+              "type": {"kind":"named","name":"Node"},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        },
+        {
+          "name": "children",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"sequence","element":{"kind":"named","name":"Node"}},
+          "args": []
+        },
+        {
+          "name": "replaceChildren",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"undefined"},
+          "args": [
+            {
+              "name": "nodes",
+              "type": {"kind":"sequence","element":{"kind":"named","name":"Node"}},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        },
+        {
+          "name": "firstChild",
+          "special": null,
+          "static": false,
+          "returnType": {"kind":"nullable","inner":{"kind":"named","name":"Node"}},
+          "args": []
+        },
+        {
+          "name": "fromDocument",
+          "special": null,
+          "static": true,
+          "returnType": {"kind":"named","name":"Node"},
+          "args": []
+        }
+      ],
+      "constructors": [
+        {
+          "args": [
+            {
+              "name": "name",
+              "type": {"kind":"dom_string"},
+              "optional": false,
+              "variadic": false,
+              "default": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "dictionaries": [],
+  "enums": [],
+  "callbacks": [],
+  "namespaces": []
+}

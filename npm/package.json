@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "webidl-runtime",
+    "webidl-codegen"
+  ],
+  "scripts": {
+    "test": "npm --workspace webidl-runtime test && npm --workspace webidl-codegen test"
+  }
+}
