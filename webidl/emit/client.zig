@@ -452,6 +452,9 @@ fn emitTypeToHandle(
         .float, .unrestricted_float => try w.print("webidl.rt.fromF64(@as(f64, {s}))", .{val_ident}),
         .double, .unrestricted_double => try w.print("webidl.rt.fromF64({s})", .{val_ident}),
         .dom_string, .byte_string, .usv_string => try w.print("webidl.rt.fromStr({s})", .{val_ident}),
+        // A view over the caller's slice, not a copy of it, so a JS call that
+        // fills the buffer fills the caller's own memory.
+        .buffer => |k| try w.print("webidl.rt.fromBuf({s}, {s}, .{s})", .{ common.bufferElem(k), val_ident, @tagName(k) }),
         .named => try w.print("{s}.handle", .{val_ident}),
         .nullable => |inner| {
             try w.print("if ({s}) |__v| ", .{val_ident});
@@ -485,6 +488,9 @@ fn emitHandleToType(
         .float, .unrestricted_float => try w.print("@as(f32, @floatCast(webidl.rt.toF64({s})))", .{h_ident}),
         .double, .unrestricted_double => try w.print("webidl.rt.toF64({s})", .{h_ident}),
         .dom_string, .byte_string, .usv_string => try w.print("webidl.rt.toStr({s})", .{h_ident}),
+        // Owned by this side once it returns, the same as `toStr`: the host
+        // copies the bytes in and the caller frees them with `freeBuf`.
+        .buffer => |k| try w.print("webidl.rt.toBuf({s}, {s})", .{ common.bufferElem(k), h_ident }),
         .named => |name| {
             const n = naming.zigIdent(gpa, name) catch return error.OutOfMemory;
             defer gpa.free(n);
@@ -684,4 +690,60 @@ test "client emitHandleToType: promise recurses to inner type" {
 // Pull the runtime module into the test graph so it is type-checked.
 test {
     _ = @import("../runtime/client.zig");
+}
+
+test "emit: an operation that fills a buffer takes a mutable slice and passes a view, not a copy" {
+    // `crypto.getRandomValues(Uint8Array)` is the shape this exists for: JS
+    // writes into the caller's own memory. A `[]const u8` argument, which is
+    // what the old placeholder emitted, cannot be a fill target at all.
+    var args = [_]model.Argument{
+        .{ .name = "array", .type = .{ .buffer = .uint8_array }, .optional = false, .variadic = false, .default = null },
+    };
+    var ops = [_]model.Operation{
+        .{ .name = "getRandomValues", .return_type = .{ .buffer = .uint8_array }, .args = &args, .special = null, .is_static = false, .stringifier = false },
+    };
+    const iface = model.Interface{
+        .name = "Crypto",
+        .inherits = null,
+        .constants = &.{},
+        .attributes = &.{},
+        .operations = &ops,
+        .constructors = &.{},
+        .mixin = false,
+    };
+    var aw: std.Io.Writer.Allocating = .init(testing.allocator);
+    defer aw.deinit();
+    try emitInterface(&aw.writer, testing.allocator, iface);
+    const out = aw.writer.buffered();
+    try testing.expect(std.mem.indexOf(u8, out, "array: []u8") != null);
+    try testing.expect(std.mem.indexOf(u8, out, "webidl.rt.fromBuf(u8, array, .uint8_array)") != null);
+    try testing.expect(std.mem.indexOf(u8, out, "webidl.rt.toBuf(u8, _h)") != null);
+    // The placeholder that used to answer for every buffer flavour.
+    try testing.expect(std.mem.indexOf(u8, out, "marshaling not yet implemented") == null);
+}
+
+test "emit: a buffer of a wider element type keeps that element type" {
+    // The kind decides the element type on both sides of the boundary. A
+    // Float32Array marshaled as bytes would be read back at the wrong stride.
+    var args = [_]model.Argument{
+        .{ .name = "samples", .type = .{ .buffer = .float32_array }, .optional = false, .variadic = false, .default = null },
+    };
+    var ops = [_]model.Operation{
+        .{ .name = "getFloatFrequencyData", .return_type = .undefined, .args = &args, .special = null, .is_static = false, .stringifier = false },
+    };
+    const iface = model.Interface{
+        .name = "AnalyserNode",
+        .inherits = null,
+        .constants = &.{},
+        .attributes = &.{},
+        .operations = &ops,
+        .constructors = &.{},
+        .mixin = false,
+    };
+    var aw: std.Io.Writer.Allocating = .init(testing.allocator);
+    defer aw.deinit();
+    try emitInterface(&aw.writer, testing.allocator, iface);
+    const out = aw.writer.buffered();
+    try testing.expect(std.mem.indexOf(u8, out, "samples: []f32") != null);
+    try testing.expect(std.mem.indexOf(u8, out, "webidl.rt.fromBuf(f32, samples, .float32_array)") != null);
 }

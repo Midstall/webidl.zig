@@ -42,6 +42,27 @@ pub export fn webidl_rt_abi_version() u32 {
     return 1;
 }
 
+/// The typed-array flavour a buffer handle stands for. The numbering IS the ABI:
+/// `BUFFER_VIEW_CTORS` in the JS host is indexed by it, and it matches the
+/// declaration order of `model.BufferKind`. Appending is safe; reordering is not.
+pub const BufferKind = enum(u32) {
+    array_buffer = 0,
+    shared_array_buffer = 1,
+    data_view = 2,
+    int8_array = 3,
+    int16_array = 4,
+    int32_array = 5,
+    uint8_array = 6,
+    uint16_array = 7,
+    uint32_array = 8,
+    uint8_clamped_array = 9,
+    bigint64_array = 10,
+    biguint64_array = 11,
+    float16_array = 12,
+    float32_array = 13,
+    float64_array = 14,
+};
+
 // JS boundary imports (resolved by the host at wasm link/instantiation time)
 
 extern "env" fn __webidl_call_method(
@@ -84,6 +105,19 @@ extern "env" fn __webidl_str_to_handle(ptr: [*]const u8, len: usize) Handle;
 /// `(ptr << 32) | len` packed into a u64. The Zig side then owns that
 /// allocation and must free it with `freeStr` when done.
 extern "env" fn __webidl_write_str(h: Handle) u64;
+
+/// Hand JS a VIEW over wasm memory rather than a copy of it. `len` counts
+/// elements, not bytes, because that is what a typed array constructor takes.
+///
+/// The host keeps the three numbers and builds the view fresh on every read, so
+/// a heap that grows between this call and the use of the handle cannot leave a
+/// detached view behind.
+extern "env" fn __webidl_buf_to_handle(ptr: [*]const u8, len: usize, kind: u32) Handle;
+
+/// Single-call bytes-out, the same shape as `__webidl_write_str`: the host
+/// allocates through `webidl_rt_alloc`, copies the buffer in, and returns
+/// `(ptr << 32) | byte_len`. The Zig side owns the result and frees it.
+extern "env" fn __webidl_write_bytes(h: Handle) u64;
 
 // Public API (thin wrappers that generated code calls)
 
@@ -190,6 +224,36 @@ pub fn freeStr(s: []const u8) void {
     rt_alloc.free(@constCast(s));
 }
 
+/// Pass a Zig slice to JS as a view over wasm memory. JS reads AND writes it in
+/// place, which is the whole point: `crypto.getRandomValues(buf)` fills the
+/// caller's slice with no copy on either side.
+///
+/// The view is only valid while the call that receives it is running. JS must
+/// not keep it, and this side must not grow the heap underneath it.
+pub fn fromBuf(comptime T: type, buf: []T, kind: BufferKind) Handle {
+    return __webidl_buf_to_handle(@ptrCast(buf.ptr), buf.len, @intFromEnum(kind));
+}
+
+/// Fetch a JS buffer as an OWNED Zig slice. The host copies the bytes into wasm
+/// memory and hands ownership over, the same as `toStr`. Free it with `freeBuf`.
+///
+/// Returns an empty slice when the handle holds no buffer, or when the byte
+/// length is not a whole number of `T`, which is a host that answered with a
+/// different flavour of array than the IDL declared.
+pub fn toBuf(comptime T: type, h: Handle) []T {
+    const loc = unpackStr(__webidl_write_bytes(h));
+    if (loc.len == 0) return &[_]T{};
+    if (loc.len % @sizeOf(T) != 0) return &[_]T{};
+    const p: [*]T = @ptrFromInt(loc.ptr);
+    return p[0 .. loc.len / @sizeOf(T)];
+}
+
+/// Free a slice that was returned by `toBuf`. An empty slice is a no-op.
+pub fn freeBuf(comptime T: type, buf: []T) void {
+    if (buf.len == 0) return;
+    rt_alloc.free(buf);
+}
+
 /// Return the null/undefined handle sentinel (zero).
 /// Used by generated client code for nullable-null cases.
 pub fn nullHandle() Handle {
@@ -271,6 +335,16 @@ test {
 
 test "webidl_rt_abi_version is 1" {
     try std.testing.expectEqual(@as(u32, 1), webidl_rt_abi_version());
+}
+
+test "the buffer kind numbering is the ABI and does not drift" {
+    // BUFFER_VIEW_CTORS on the JS side is indexed by these numbers. A reorder
+    // here silently hands JS the wrong constructor, which is a wrong ANSWER
+    // rather than a crash: bytes read as the wrong element type.
+    try std.testing.expectEqual(@as(u32, 0), @intFromEnum(BufferKind.array_buffer));
+    try std.testing.expectEqual(@as(u32, 6), @intFromEnum(BufferKind.uint8_array));
+    try std.testing.expectEqual(@as(u32, 14), @intFromEnum(BufferKind.float64_array));
+    try std.testing.expectEqual(15, @typeInfo(BufferKind).@"enum".fields.len);
 }
 
 test "webidl_rt_alloc(0) returns null" {

@@ -1,4 +1,26 @@
-import { ABI_VERSION, ENV_IMPORTS } from './abi.ts';
+import { ABI_VERSION, ENV_IMPORTS, BUFFER_VIEW_CTORS } from './abi.ts';
+
+/// What a buffer handle actually holds: where the bytes live in wasm memory and
+/// how to look at them, NOT a live typed array.
+///
+/// A view is built fresh every time the handle is read. Growing the wasm heap
+/// detaches every view over the old ArrayBuffer, so a stored view would turn
+/// into a `TypedArray is detached` the first time the module allocated between
+/// making the view and using it. A descriptor cannot go stale.
+/// Written out longhand rather than as constructor parameter properties: the
+/// tests run under node's strip-only TypeScript mode, which erases types and
+/// refuses any syntax that would need a real transform.
+class BufView {
+  ptr: number;
+  len: number;
+  kind: number;
+
+  constructor(ptr: number, len: number, kind: number) {
+    this.ptr = ptr;
+    this.len = len;
+    this.kind = kind;
+  }
+}
 
 export interface Host {
   imports: { env: Record<string, (...a: any[]) => any> };
@@ -41,7 +63,23 @@ export function createHost(): Host {
 
   function getValue(h: number): unknown {
     if (h === 0) return null;
-    return handleTable.get(h);
+    const v = handleTable.get(h);
+    // Materialized on every read, never stored. See BufView.
+    if (v instanceof BufView) return viewOf(v);
+    return v;
+  }
+
+  function viewOf(b: BufView): ArrayBufferView {
+    const name = BUFFER_VIEW_CTORS[b.kind];
+    if (name === undefined) throw new Error(`unknown buffer kind ${b.kind}`);
+    const ctor = (globalThis as unknown as Record<string, unknown>)[name];
+    // Float16Array is recent enough that a browser in the field may not have
+    // it. Saying which one is missing beats "ctor is not a constructor".
+    if (typeof ctor !== 'function') {
+      throw new Error(`${name} is not available in this environment`);
+    }
+    const C = ctor as new (buf: ArrayBufferLike, ptr: number, len: number) => ArrayBufferView;
+    return new C(getMemory().buffer, b.ptr, b.len);
   }
 
   function readString(ptr: number, len: number): string {
@@ -106,6 +144,30 @@ export function createHost(): Host {
           const s = String(getValue(h));
           const bytes = encoder.encode(s);
           if (bytes.length === 0) return 0n;
+          const ptr = getAlloc()(bytes.length);
+          new Uint8Array(getMemory().buffer, ptr, bytes.length).set(bytes);
+          return (BigInt(ptr) << 32n) | BigInt(bytes.length);
+        },
+
+        // A view over wasm memory, so a JS call that FILLS a buffer
+        // (crypto.getRandomValues is the reason this exists) writes straight
+        // into the caller's slice with no copy in either direction. `len` counts
+        // elements, not bytes, which is what a typed array constructor wants.
+        __webidl_buf_to_handle(ptr: number, len: number, kind: number): number {
+          return internValue(new BufView(ptr, len, kind));
+        },
+
+        // The way back: copy the bytes of a JS buffer into wasm memory and hand
+        // over ownership, exactly as __webidl_write_str does for a string.
+        __webidl_write_bytes(h: number): bigint {
+          const v = getValue(h);
+          const bytes =
+            v instanceof ArrayBuffer
+              ? new Uint8Array(v)
+              : ArrayBuffer.isView(v)
+                ? new Uint8Array(v.buffer, v.byteOffset, v.byteLength)
+                : null;
+          if (bytes === null || bytes.length === 0) return 0n;
           const ptr = getAlloc()(bytes.length);
           new Uint8Array(getMemory().buffer, ptr, bytes.length).set(bytes);
           return (BigInt(ptr) << 32n) | BigInt(bytes.length);

@@ -206,3 +206,69 @@ test('attach throws on ABI version mismatch', () => {
   } as unknown as WebAssembly.Instance;
   assert.throws(() => host.attach(badInst), { message: /mismatch/ });
 });
+
+test('__webidl_buf_to_handle hands JS a live view, so a fill lands in wasm memory', () => {
+  const { host, mem, env } = setup();
+  const ptr = 2048;
+  const h = env['__webidl_buf_to_handle']!(ptr, 8, 6); // kind 6 = Uint8Array
+
+  // What a fill target looks like from JS: writing through the handle writes
+  // the caller's own memory, with no copy back.
+  const view = host.value(h) as Uint8Array;
+  assert.ok(view instanceof Uint8Array);
+  assert.equal(view.length, 8);
+  view.set([1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.deepEqual(Array.from(new Uint8Array(mem.buffer, ptr, 8)), [1, 2, 3, 4, 5, 6, 7, 8]);
+});
+
+test('a buffer handle survives the heap growing under it', () => {
+  // This is why the host stores a descriptor and not a typed array. Growing the
+  // memory detaches every view over the old ArrayBuffer, and a stored view
+  // would throw "detached" on the next read instead of showing the bytes.
+  const { host, mem, env } = setup();
+  const h = env['__webidl_buf_to_handle']!(2048, 4, 6);
+  assert.equal((host.value(h) as Uint8Array).length, 4);
+
+  mem.grow(1);
+
+  const after = host.value(h) as Uint8Array;
+  assert.ok(after instanceof Uint8Array);
+  after.set([9, 9, 9, 9]);
+  assert.deepEqual(Array.from(new Uint8Array(mem.buffer, 2048, 4)), [9, 9, 9, 9]);
+});
+
+test('the view flavour follows the declared kind', () => {
+  const { host, env } = setup();
+  // Element size, not byte count: 4 f32s is 16 bytes.
+  const f32 = host.value(env['__webidl_buf_to_handle']!(2048, 4, 13)) as Float32Array;
+  assert.ok(f32 instanceof Float32Array);
+  assert.equal(f32.length, 4);
+  assert.equal(f32.byteLength, 16);
+
+  const i16 = host.value(env['__webidl_buf_to_handle']!(2048, 4, 4)) as Int16Array;
+  assert.ok(i16 instanceof Int16Array);
+  assert.equal(i16.byteLength, 8);
+});
+
+test('an unknown buffer kind is named rather than crashing as "not a constructor"', () => {
+  const { host, env } = setup();
+  const h = env['__webidl_buf_to_handle']!(2048, 4, 99);
+  assert.throws(() => host.value(h), /unknown buffer kind 99/);
+});
+
+test('__webidl_write_bytes copies a JS buffer into wasm memory and hands over the bytes', () => {
+  const { host, mem, env } = setup();
+  const packed = env['__webidl_write_bytes']!(host.intern(new Uint8Array([10, 20, 30])));
+  const ptr = Number(packed >> 32n);
+  const len = Number(packed & 0xffffffffn);
+  assert.equal(len, 3);
+  assert.deepEqual(Array.from(new Uint8Array(mem.buffer, ptr, len)), [10, 20, 30]);
+
+  // A plain ArrayBuffer is read the same way as a view over one.
+  const packed2 = env['__webidl_write_bytes']!(host.intern(new Uint8Array([7, 7]).buffer));
+  assert.equal(Number(packed2 & 0xffffffffn), 2);
+
+  // Nothing to copy answers with a zero, which the Zig side reads as empty.
+  assert.equal(env['__webidl_write_bytes']!(host.intern('not a buffer')), 0n);
+  assert.equal(env['__webidl_write_bytes']!(host.intern(new Uint8Array(0))), 0n);
+});

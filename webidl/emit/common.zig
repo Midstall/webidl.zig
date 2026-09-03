@@ -59,7 +59,10 @@ pub fn zigType(w: *std.Io.Writer, gpa: std.mem.Allocator, t: model.Type) Error!v
             try w.writeByte('}');
         },
         .union_of => try w.writeAll("*anyopaque"), // TODO: union types not yet modeled
-        .buffer => try w.writeAll("[]const u8"), // buffer placeholder
+        // Mutable, because a buffer argument is usually a fill target: JS writes
+        // into the caller's slice in place. `bufferElem` names the element type
+        // the declared array flavour holds.
+        .buffer => |k| try w.print("[]{s}", .{bufferElem(k)}),
         .named => |name| {
             const ident = naming.zigIdent(gpa, name) catch return error.OutOfMemory;
             defer gpa.free(ident);
@@ -485,4 +488,40 @@ test "generateChecked: valid input emits and produces empty err_w" {
     try generateChecked(testing.allocator, src, .model, &out.writer, &err.writer, false);
     try testing.expect(out.writer.buffered().len > 0);
     try testing.expectEqualStrings("", err.writer.buffered());
+}
+
+/// The Zig element type behind each declared buffer flavour.
+///
+/// The three that are not typed arrays in their own right (`ArrayBuffer`,
+/// `SharedArrayBuffer`, `DataView`) are handed over as bytes, which is what the
+/// JS host views them as: wasm memory is the backing store, so anything else
+/// would be a copy rather than the caller's own bytes.
+pub fn bufferElem(k: model.BufferKind) []const u8 {
+    return switch (k) {
+        .array_buffer, .shared_array_buffer, .data_view, .uint8_array, .uint8_clamped_array => "u8",
+        .int8_array => "i8",
+        .int16_array => "i16",
+        .int32_array => "i32",
+        .uint16_array => "u16",
+        .uint32_array => "u32",
+        .bigint64_array => "i64",
+        .biguint64_array => "u64",
+        .float16_array => "f16",
+        .float32_array => "f32",
+        .float64_array => "f64",
+    };
+}
+
+test "a buffer type names a mutable slice of its own element type" {
+    // The placeholder this replaced said `[]const u8` for every flavour, which
+    // is both the wrong element type and the wrong mutability for a fill target.
+    var buf: [64]u8 = undefined;
+    var aw = std.Io.Writer.fixed(&buf);
+    try zigType(&aw, std.testing.allocator, .{ .buffer = .uint8_array });
+    try std.testing.expectEqualStrings("[]u8", aw.buffered());
+
+    var buf2: [64]u8 = undefined;
+    var aw2 = std.Io.Writer.fixed(&buf2);
+    try zigType(&aw2, std.testing.allocator, .{ .buffer = .float32_array });
+    try std.testing.expectEqualStrings("[]f32", aw2.buffered());
 }
